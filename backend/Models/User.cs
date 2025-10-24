@@ -17,5 +17,7 @@
         public ICollection<Game> GamesAsO { get; set; }
         public ICollection<GameMove> Moves { get; set; }
         public ICollection<ChatMessage> Messages { get; set; }
+        public ICollection<Connection> Connections { get; set; } = new List<Connection>();
+
     }
 }

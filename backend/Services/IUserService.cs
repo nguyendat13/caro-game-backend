@@ -9,5 +9,8 @@ namespace backend.Services
         Task<UserResponseDTO> GetByIdAsync(int userId);
         Task<UserResponseDTO> UpdateAsync(UserUpdateDTO dto);
         Task<bool> DeleteAsync(int userId);
+        Task<bool> ChangePasswordAsync(ChangePasswordDTO dto);
+        Task<UserResponseDTO> UpdateProfileAsync(UpdateProfileDTO dto);
+
     }
 }

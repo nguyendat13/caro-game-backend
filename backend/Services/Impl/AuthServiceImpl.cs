@@ -1,4 +1,5 @@
 ﻿using backend.DTOs.Auth;
+using backend.DTOs.User;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -85,6 +86,86 @@ namespace backend.Services
                     user.Phone
                 }
             };
+        }
+
+        public async Task<LoginResponseDTO> RegisterAsync(UserRegisterDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
+                throw new Exception("Vui lòng nhập đầy đủ thông tin đăng ký.");
+
+            // Kiểm tra username hoặc email đã tồn tại
+            bool exists = await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email);
+            if (exists)
+                throw new Exception("Tên người dùng hoặc email đã được sử dụng.");
+
+            // Hash mật khẩu
+            string hashedPassword = HashPassword(dto.Password);
+
+            var user = new User
+            {
+                Username = dto.Username,
+                FullName = dto.FullName,
+                Email = dto.Email,
+                Phone = dto.Phone,
+                PasswordHash = hashedPassword
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            string token = GenerateToken(user);
+
+            return new LoginResponseDTO
+            {
+                Message = "Đăng ký thành công!",
+                Token = token,
+                User = new
+                {
+                    user.UserId,
+                    user.Username,
+                    user.FullName,
+                    user.Email,
+                    user.Phone
+                }
+            };
+        }
+
+
+        public async Task<bool> ForgotPasswordAsync(ForgotPasswordDTO dto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            if (user == null)
+                throw new Exception("Email không tồn tại trong hệ thống.");
+
+            // Tạo mật khẩu tạm thời (8 ký tự)
+            var tempPassword = Path.GetRandomFileName().Replace(".", "").Substring(0, 8);
+
+            // Hash lại mật khẩu
+            user.PasswordHash = HashPassword(tempPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Gửi email thông báo
+            var emailBody = $@"
+                <p>Xin chào {user.FullName ?? user.Username},</p>
+                <p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
+                <p><strong>Mật khẩu tạm thời:</strong> {tempPassword}</p>
+                <p>Vui lòng đăng nhập và đổi mật khẩu ngay lập tức để bảo mật tài khoản của bạn.</p>
+                <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+                <p>Trân trọng,<br/>{_config["EmailSettings:SenderName"]}</p>
+            ";
+
+            try
+            {
+                var emailService = new EmailService(_config);
+                emailService.SendEmail(user.Email, "Yêu cầu đặt lại mật khẩu", emailBody);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Không thể gửi email. " + ex.Message);
+            }
         }
     }
 }

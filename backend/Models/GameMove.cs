@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
         public int GameId { get; set; }           // FK Game
-        public int PlayerId { get; set; }         // FK User
+        public int? PlayerId { get; set; }         // FK User
         public byte X { get; set; }               // 0-based
         public byte Y { get; set; }               // 0-based
         public int MoveOrder { get; set; }        // Thứ tự nước đi

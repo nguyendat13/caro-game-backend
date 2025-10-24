@@ -8,6 +8,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<IAuthService, AuthServiceImpl>();
+builder.Services.AddScoped<IGameOfflineService, GameOfflineServiceImpl>();
 
 // Add services to the container.
 

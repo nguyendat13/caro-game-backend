@@ -10,6 +10,7 @@ namespace backend.Models
         public DbSet<Game> Games { get; set; }
         public DbSet<GameMove> GameMoves { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<Connection> Connections { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,7 +36,7 @@ namespace backend.Models
 
             modelBuilder.Entity<GameMove>()
                 .HasOne(m => m.Game)
-                .WithMany(g => g.Moves)
+                    .WithMany(g => g.Moves)
                 .HasForeignKey(m => m.GameId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -56,6 +57,13 @@ namespace backend.Models
                 .WithMany(u => u.Messages)
                 .HasForeignKey(c => c.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Connection>()
+                .HasOne(c => c.User)
+                .WithMany(u => u.Connections)
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
+
     }
 }

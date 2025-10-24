@@ -33,6 +33,7 @@ namespace backend.Controllers
             return Ok(user);
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] UserRegisterDTO dto)
         {
@@ -72,6 +73,34 @@ namespace backend.Controllers
                 var result = await _service.DeleteAsync(id);
                 if (!result) return NotFound();
                 return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDTO dto)
+        {
+            try
+            {
+                var result = await _service.ChangePasswordAsync(dto);
+                return Ok(new { message = "Đổi mật khẩu thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDTO dto)
+        {
+            try
+            {
+                var updatedUser = await _service.UpdateProfileAsync(dto);
+                return Ok(updatedUser);
             }
             catch (Exception ex)
             {

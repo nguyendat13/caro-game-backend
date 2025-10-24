@@ -149,5 +149,57 @@ namespace backend.Services
                 Phone = user.Phone
             };
         }
+
+
+        // ✅ Đổi mật khẩu người dùng
+        public async Task<bool> ChangePasswordAsync(ChangePasswordDTO dto)
+        {
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null)
+                throw new Exception("Không tìm thấy người dùng.");
+
+            string currentHashed = HashPassword(dto.CurrentPassword);
+            if (user.PasswordHash != currentHashed)
+                throw new Exception("Mật khẩu hiện tại không đúng.");
+
+            if (string.IsNullOrWhiteSpace(dto.NewPassword))
+                throw new Exception("Mật khẩu mới không được để trống.");
+
+            user.PasswordHash = HashPassword(dto.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        // ✅ Cập nhật hồ sơ cá nhân (profile)
+        public async Task<UserResponseDTO> UpdateProfileAsync(UpdateProfileDTO dto)
+        {
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null)
+                throw new Exception("Không tìm thấy người dùng.");
+            if (await _context.Users.AnyAsync(u => u.Username == dto.Username && u.UserId != dto.UserId))
+                throw new Exception("Username đã được sử dụng bởi người dùng khác.");
+            // Kiểm tra email trùng
+            if (await _context.Users.AnyAsync(u => u.Email == dto.Email && u.UserId != dto.UserId))
+                throw new Exception("Email đã được sử dụng bởi người dùng khác.");
+            user.Username = dto.Username;
+            user.FullName = dto.FullName;
+            user.Email = dto.Email;
+            user.Phone = dto.Phone;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new UserResponseDTO
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone
+            };
+        }
+
     }
 }
