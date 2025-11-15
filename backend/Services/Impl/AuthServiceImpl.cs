@@ -4,9 +4,9 @@ using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace backend.Services
@@ -15,6 +15,7 @@ namespace backend.Services
     {
         private readonly CaroDbContext _context;
         private readonly IConfiguration _config;
+        private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
 
         public AuthServiceImpl(CaroDbContext context, IConfiguration config)
         {
@@ -22,21 +23,31 @@ namespace backend.Services
             _config = config;
         }
 
-        private string HashPassword(string password)
+        private string HashPassword(User user, string password)
         {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
+            return _passwordHasher.HashPassword(user, password);
+        }
+
+        private bool VerifyPassword(User user, string password, string storedHash)
+        {
+            var result = _passwordHasher.VerifyHashedPassword(user, storedHash, password);
+            return result == PasswordVerificationResult.Success;
         }
 
         private string GenerateToken(User user)
         {
-            var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"]);
+            var keyString = _config["Jwt:Key"];
+            if (string.IsNullOrEmpty(keyString))
+                throw new Exception("JWT Key is not configured.");
+
+            var key = Encoding.UTF8.GetBytes(keyString);
+
             var claims = new List<Claim>
             {
                 new Claim("userId", user.UserId.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Email, user.Email ?? "")
+                new Claim(ClaimTypes.Email, user.Email ?? ""),
+                new Claim("roleId", user.RoleId.ToString())
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -56,19 +67,20 @@ namespace backend.Services
             return tokenHandler.WriteToken(token);
         }
 
+
         public async Task<LoginResponseDTO> LoginAsync(LoginDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.UsernameOrEmail) || string.IsNullOrWhiteSpace(dto.Password))
                 throw new Exception("Vui lòng nhập đầy đủ tài khoản/email và mật khẩu.");
 
             var user = await _context.Users
+                .Include(u => u.Role) // Include Role
                 .FirstOrDefaultAsync(u => u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail);
 
             if (user == null)
                 throw new Exception("Không tìm thấy tài khoản với thông tin đã nhập.");
 
-            var hashedPassword = HashPassword(dto.Password);
-            if (user.PasswordHash != hashedPassword)
+            if (!VerifyPassword(user, dto.Password, user.PasswordHash))
                 throw new Exception("Mật khẩu không chính xác.");
 
             string token = GenerateToken(user);
@@ -83,7 +95,9 @@ namespace backend.Services
                     user.Username,
                     user.FullName,
                     user.Email,
-                    user.Phone
+                    user.Phone,
+                    RoleId = user.RoleId,
+                    RoleName = user.Role?.RoleName
                 }
             };
         }
@@ -93,13 +107,9 @@ namespace backend.Services
             if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
                 throw new Exception("Vui lòng nhập đầy đủ thông tin đăng ký.");
 
-            // Kiểm tra username hoặc email đã tồn tại
             bool exists = await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email);
             if (exists)
                 throw new Exception("Tên người dùng hoặc email đã được sử dụng.");
-
-            // Hash mật khẩu
-            string hashedPassword = HashPassword(dto.Password);
 
             var user = new User
             {
@@ -107,11 +117,16 @@ namespace backend.Services
                 FullName = dto.FullName,
                 Email = dto.Email,
                 Phone = dto.Phone,
-                PasswordHash = hashedPassword
+                RoleId = dto.RoleId > 0 ? dto.RoleId : 3 // default = 3 (user)
             };
+
+            user.PasswordHash = HashPassword(user, dto.Password);
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+
+            // Lấy role để trả về
+            await _context.Entry(user).Reference(u => u.Role).LoadAsync();
 
             string token = GenerateToken(user);
 
@@ -125,11 +140,12 @@ namespace backend.Services
                     user.Username,
                     user.FullName,
                     user.Email,
-                    user.Phone
+                    user.Phone,
+                    RoleId = user.RoleId,
+                    RoleName = user.Role?.RoleName
                 }
             };
         }
-
 
         public async Task<bool> ForgotPasswordAsync(ForgotPasswordDTO dto)
         {
@@ -137,16 +153,13 @@ namespace backend.Services
             if (user == null)
                 throw new Exception("Email không tồn tại trong hệ thống.");
 
-            // Tạo mật khẩu tạm thời (8 ký tự)
             var tempPassword = Path.GetRandomFileName().Replace(".", "").Substring(0, 8);
 
-            // Hash lại mật khẩu
-            user.PasswordHash = HashPassword(tempPassword);
+            user.PasswordHash = HashPassword(user, tempPassword);
             user.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            // Gửi email thông báo
             var emailBody = $@"
                 <p>Xin chào {user.FullName ?? user.Username},</p>
                 <p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>

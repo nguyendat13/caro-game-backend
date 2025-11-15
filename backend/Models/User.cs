@@ -8,11 +8,12 @@
         public string Email { get; set; }         // unique
         public string PasswordHash { get; set; }
         public string Phone { get; set; }
-
+        public int RoleId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
+        public Role Role { get; set; }
         public ICollection<Game> GamesAsX { get; set; }
         public ICollection<Game> GamesAsO { get; set; }
         public ICollection<GameMove> Moves { get; set; }

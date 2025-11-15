@@ -3,6 +3,7 @@ using backend.DTOs.User;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace backend.Controllers
 {
@@ -16,6 +17,13 @@ namespace backend.Controllers
         public UserController(IUserService service)
         {
             _service = service;
+        }
+
+        private int GetCurrentUserRoleId()
+        {
+            // Lấy roleId từ JWT claim, mặc định = 3 (user) nếu không tìm thấy
+            var roleClaim = User.FindFirst("roleId")?.Value;
+            return int.TryParse(roleClaim, out var roleId) ? roleId : 3;
         }
 
         [HttpGet]
@@ -55,7 +63,8 @@ namespace backend.Controllers
 
             try
             {
-                var updated = await _service.UpdateAsync(dto);
+                int currentUserRoleId = GetCurrentUserRoleId();
+                var updated = await _service.UpdateAsync(dto, currentUserRoleId);
                 if (updated == null) return NotFound();
                 return Ok(updated);
             }
@@ -70,7 +79,8 @@ namespace backend.Controllers
         {
             try
             {
-                var result = await _service.DeleteAsync(id);
+                int currentUserRoleId = GetCurrentUserRoleId();
+                var result = await _service.DeleteAsync(id, currentUserRoleId);
                 if (!result) return NotFound();
                 return NoContent();
             }
@@ -105,6 +115,41 @@ namespace backend.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // ============================================
+        // 1) YÊU CẦU CẬP NHẬT PROFILE (GỬI OTP)
+        // ============================================
+        [HttpPost("request-profile-update")]
+        public async Task<IActionResult> RequestProfileUpdate([FromBody] UpdateProfileRequestDTO dto)
+        {
+            try
+            {
+                await _service.RequestProfileUpdateAsync(dto); // ❌ không gán vào biến
+                return Ok(new { success = true, message = "OTP đã gửi vào email cũ." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        // ============================================
+        // 2) XÁC NHẬN OTP ĐỂ CẬP NHẬT PROFILE
+        // ============================================
+        [HttpPost("confirm-profile-update")]
+        public async Task<IActionResult> ConfirmProfileUpdate([FromBody] ConfirmUpdateProfileDTO dto)
+        {
+            try
+            {
+                var updatedUser = await _service.ConfirmProfileUpdateAsync(dto);
+                return Ok(new { success = true, data = updatedUser, message = "Cập nhật thông tin thành công." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
     }

@@ -14,6 +14,12 @@ namespace backend.Controllers
         {
             _gameService = gameService;
         }
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllGames()
+        {
+            var games = await _gameService.GetAllGamesAsync();
+            return Ok(games);
+        }
 
         [HttpPost("create")]
         public async Task<IActionResult> CreateGame([FromQuery] int playerId)

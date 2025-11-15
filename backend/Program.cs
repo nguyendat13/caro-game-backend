@@ -9,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<IAuthService, AuthServiceImpl>();
 builder.Services.AddScoped<IGameOfflineService, GameOfflineServiceImpl>();
+builder.Services.AddScoped<IRoleService,RoleServiceImpl>();
+builder.Services.AddScoped<EmailService>();
 
 // Add services to the container.
 

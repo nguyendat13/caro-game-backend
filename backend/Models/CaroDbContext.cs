@@ -11,9 +11,16 @@ namespace backend.Models
         public DbSet<GameMove> GameMoves { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<Connection> Connections { get; set; }
+        public DbSet<ProfileUpdateOtp> ProfileUpdateOtps { get; set; }
 
+        public DbSet<Role> Roles { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Role>().HasData(
+        new Role { RoleId = 1, RoleName = "superadmin" },
+        new Role { RoleId = 2, RoleName = "admin" },
+        new Role { RoleId = 3, RoleName = "user" }
+    );
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();

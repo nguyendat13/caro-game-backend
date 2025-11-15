@@ -8,5 +8,6 @@
         public string Email { get; set; }
         public string Phone { get; set; }
         public string? Password { get; set; }  // Có thể null nếu không đổi mật khẩu
+        public int RoleId { get; set; }
     }
 }

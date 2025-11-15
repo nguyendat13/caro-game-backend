@@ -12,8 +12,8 @@ using backend.Models;
 namespace backend.Migrations
 {
     [DbContext(typeof(CaroDbContext))]
-    [Migration("20251021153104_UpdateTables")]
-    partial class UpdateTables
+    [Migration("20251113164840_AddTable")]
+    partial class AddTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -53,6 +53,34 @@ namespace backend.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("ChatMessages");
+                });
+
+            modelBuilder.Entity("backend.Models.Connection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ConnectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ConnectionId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DisconnectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Connections");
                 });
 
             modelBuilder.Entity("backend.Models.Game", b =>
@@ -109,7 +137,7 @@ namespace backend.Migrations
                     b.Property<int>("MoveOrder")
                         .HasColumnType("int");
 
-                    b.Property<int>("PlayerId")
+                    b.Property<int?>("PlayerId")
                         .HasColumnType("int");
 
                     b.Property<byte>("X")
@@ -125,6 +153,40 @@ namespace backend.Migrations
                     b.HasIndex("PlayerId");
 
                     b.ToTable("GameMoves");
+                });
+
+            modelBuilder.Entity("backend.Models.Role", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("RoleId");
+
+                    b.ToTable("Roles");
+
+                    b.HasData(
+                        new
+                        {
+                            RoleId = 1,
+                            RoleName = "superadmin"
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RoleName = "admin"
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            RoleName = "user"
+                        });
                 });
 
             modelBuilder.Entity("backend.Models.User", b =>
@@ -154,6 +216,9 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -165,6 +230,8 @@ namespace backend.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("RoleId");
 
                     b.HasIndex("Username")
                         .IsUnique();
@@ -189,6 +256,17 @@ namespace backend.Migrations
                     b.Navigation("Game");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("backend.Models.Connection", b =>
+                {
+                    b.HasOne("backend.Models.User", "User")
+                        .WithMany("Connections")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("backend.Models.Game", b =>
@@ -225,12 +303,22 @@ namespace backend.Migrations
                     b.HasOne("backend.Models.User", "Player")
                         .WithMany("Moves")
                         .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Game");
 
                     b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("backend.Models.User", b =>
+                {
+                    b.HasOne("backend.Models.Role", "Role")
+                        .WithMany("Users")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("backend.Models.Game", b =>
@@ -240,8 +328,15 @@ namespace backend.Migrations
                     b.Navigation("Moves");
                 });
 
+            modelBuilder.Entity("backend.Models.Role", b =>
+                {
+                    b.Navigation("Users");
+                });
+
             modelBuilder.Entity("backend.Models.User", b =>
                 {
+                    b.Navigation("Connections");
+
                     b.Navigation("GamesAsO");
 
                     b.Navigation("GamesAsX");
