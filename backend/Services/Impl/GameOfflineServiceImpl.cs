@@ -14,6 +14,7 @@ namespace backend.Services
         {
             _context = context;
         }
+
         public async Task<List<GameDTO>> GetAllGamesAsync()
         {
             var games = await _context.Games
@@ -34,26 +35,22 @@ namespace backend.Services
 
         public async Task<GameDTO> CreateOfflineGameAsync(int playerId)
         {
-            // Kiểm tra user có tồn tại không
             var user = await _context.Users.FindAsync(playerId);
             if (user == null)
                 throw new KeyNotFoundException($"UserId {playerId} không tồn tại.");
 
-            // Tạo mới game offline
             var game = new Game
             {
                 PlayerXId = playerId,
-                PlayerOId = null, // Bot
+                PlayerOId = null,
                 Status = GameStatus.Ongoing,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
-            // Lưu vào DB
             _context.Games.Add(game);
             await _context.SaveChangesAsync();
 
-            // Trả về DTO (chỉ trả thông tin cần thiết)
             return new GameDTO
             {
                 GameId = game.GameId,
@@ -72,18 +69,18 @@ namespace backend.Services
                 .FirstOrDefaultAsync(g => g.GameId == moveDto.GameId);
 
             if (game == null)
-                throw new Exception("Không tìm thấy ván cờ.");
+                return GameMoveDTO.Fail("Không tìm thấy ván cờ.");
 
             if (game.Status != GameStatus.Ongoing)
-                throw new Exception("Ván cờ đã kết thúc, không thể đi thêm.");
+                return GameMoveDTO.Fail("Ván cờ đã kết thúc, không thể đi thêm.");
 
-            // 🧩 Kiểm tra trùng vị trí
+            // Không cho đánh trùng
             if (game.Moves.Any(m => m.X == moveDto.X && m.Y == moveDto.Y))
-                throw new Exception("Ô này đã được đánh rồi, vui lòng chọn ô khác.");
+                return GameMoveDTO.Fail("Ô này đã được đánh rồi, vui lòng chọn ô khác.");
 
-            // 🧩 Người chơi đi
             int nextOrder = game.Moves.Count + 1;
 
+            // Player Move
             var playerMove = new GameMove
             {
                 GameId = moveDto.GameId,
@@ -97,17 +94,17 @@ namespace backend.Services
             _context.GameMoves.Add(playerMove);
             await _context.SaveChangesAsync();
 
-            // 🏁 Kiểm tra thắng của người chơi
+            // Kiểm tra thắng Player
             if (moveDto.PlayerId != null && CheckWinCondition(moveDto.GameId, moveDto.PlayerId.Value))
             {
                 game.WinnerId = moveDto.PlayerId;
                 game.Status = GameStatus.Finished;
                 await _context.SaveChangesAsync();
 
-                throw new Exception("🎉 Bạn đã chiến thắng ván cờ!");
+                return GameMoveDTO.SuccessPlayerWin(moveDto.X, moveDto.Y);
             }
 
-            // 🤖 Nước đi của bot
+            // BOT move
             var botMove = await GenerateBotMoveAsync(moveDto.GameId, nextOrder + 1);
 
             if (botMove != null)
@@ -115,29 +112,31 @@ namespace backend.Services
                 _context.GameMoves.Add(botMove);
                 await _context.SaveChangesAsync();
 
-                // 🧠 Kiểm tra thắng của bot
+                // Kiểm tra thắng Bot
                 if (CheckWinCondition(moveDto.GameId, botMove.PlayerId))
                 {
                     game.WinnerId = botMove.PlayerId;
                     game.Status = GameStatus.Finished;
                     await _context.SaveChangesAsync();
 
-                    throw new Exception("🤖 Bot đã chiến thắng!");
+                    return GameMoveDTO.SuccessBotWin(
+                        moveDto.X, moveDto.Y,
+                        botMove.X, botMove.Y
+                    );
                 }
 
-                return new GameMoveDTO
-                {
-                    PlayerMove = new MoveDetailDTO(moveDto.X, moveDto.Y, "Player"),
-                    BotMove = new MoveDetailDTO(botMove.X, botMove.Y, "Bot")
-                };
+                return GameMoveDTO.SuccessMove(
+                    moveDto.X, moveDto.Y,
+                    botMove.X, botMove.Y
+                );
             }
 
-            // 🚫 Nếu bot không thể đánh (full bàn)
+            // Không còn chỗ trống -> hòa
             game.Status = GameStatus.Finished;
             await _context.SaveChangesAsync();
-            throw new Exception("Ván cờ kết thúc, không còn ô trống.");
-        }
 
+            return GameMoveDTO.Draw(moveDto.X, moveDto.Y);
+        }
 
         private async Task<GameMove?> GenerateBotMoveAsync(int gameId, int moveOrder)
         {
@@ -147,12 +146,11 @@ namespace backend.Services
 
             if (game == null) return null;
 
-            int size = 15; // bàn cờ 15x15
+            int size = 15;
             var moves = game.Moves.ToList();
 
-            // Lấy toàn bộ tọa độ người chơi
             var playerMoves = moves
-                .Where(m => m.PlayerId != null) // người chơi thật
+                .Where(m => m.PlayerId != null)
                 .Select(m => (m.X, m.Y))
                 .ToList();
 
@@ -161,32 +159,31 @@ namespace backend.Services
             {
                 foreach (var (dx, dy) in new (int, int)[]
                 {
-            (1, 0),  // ngang
-            (0, 1),  // dọc
-            (1, 1),  // chéo xuống
-            (1, -1)  // chéo lên
+                    (1, 0),   // ngang
+                    (0, 1),   // dọc
+                    (1, 1),   // chéo xuống
+                    (1, -1)   // chéo lên
                 })
                 {
                     int count = 1;
-
-                    // Đếm liên tiếp của người chơi theo hướng (dx, dy)
                     int x = px + dx, y = py + dy;
-                    while (playerMoves.Contains(((byte)x, (byte)y)))
+
+                    // ✅ FIX: Thêm bounds check vào while loop
+                    while (x >= 0 && y >= 0 && x < size && y < size && playerMoves.Contains(((byte)x, (byte)y)))
                     {
                         count++;
-                        x += dx; y += dy;
+                        x += dx;
+                        y += dy;
                     }
 
-                    // Nếu có 4 quân liên tiếp, chặn ô kế tiếp
                     if (count >= 4)
                     {
-                        // Ô phía trước
                         if (x >= 0 && y >= 0 && x < size && y < size && !moves.Any(m => m.X == x && m.Y == y))
                         {
                             return new GameMove
                             {
                                 GameId = gameId,
-                                PlayerId = null, // Bot
+                                PlayerId = null,
                                 X = (byte)x,
                                 Y = (byte)y,
                                 MoveOrder = moveOrder,
@@ -194,7 +191,6 @@ namespace backend.Services
                             };
                         }
 
-                        // Ô phía sau
                         int backX = px - dx, backY = py - dy;
                         if (backX >= 0 && backY >= 0 && backX < size && backY < size && !moves.Any(m => m.X == backX && m.Y == backY))
                         {
@@ -212,8 +208,22 @@ namespace backend.Services
                 }
             }
 
-            // ✅ 2. KHÔNG NGUY HIỂM → ĐÁNH GẦN NGƯỜI CHƠI NHẤT
-            var lastPlayerMove = playerMoves.LastOrDefault();
+            // ✅ 2. FIX: Kiểm tra playerMoves rỗng trước
+            if (!playerMoves.Any())
+            {
+                return new GameMove
+                {
+                    GameId = gameId,
+                    PlayerId = null,
+                    X = 7,
+                    Y = 7,
+                    MoveOrder = moveOrder,
+                    CreatedAt = DateTime.UtcNow
+                };
+            }
+
+            // ✅ 3. ĐÁNH GẦN NGƯỜI CHƠI NHẤT
+            var lastPlayerMove = playerMoves.Last();
             var nearbyCells = new List<(int X, int Y)>();
 
             for (int dx = -1; dx <= 1; dx++)
@@ -233,7 +243,7 @@ namespace backend.Services
 
             if (nearbyCells.Any())
             {
-                var chosen = nearbyCells[new Random().Next(nearbyCells.Count)];
+                var chosen = nearbyCells[_random.Next(nearbyCells.Count)];
                 return new GameMove
                 {
                     GameId = gameId,
@@ -245,7 +255,6 @@ namespace backend.Services
                 };
             }
 
-            // ✅ 3. Nếu full bàn → không thể đi
             return null;
         }
 
@@ -264,7 +273,8 @@ namespace backend.Services
                 Status = game.Status.ToString(),
                 WinnerId = game.WinnerId,
                 CreatedAt = game.CreatedAt,
-                Moves = game.Moves.Select(m => new MoveDetailDTO(m.X, m.Y, m.PlayerId == 0 ? "Bot" : "Player")).ToList()
+                // ✅ FIX: Đổi == 0 thành == null
+                Moves = game.Moves.Select(m => new MoveDetailDTO(m.X, m.Y, m.PlayerId == null ? "Bot" : "Player")).ToList()
             };
         }
 
@@ -272,24 +282,21 @@ namespace backend.Services
         {
             if (playerId == null) return false;
 
-// Lấy tất cả nước đi của người chơi trong game
-var moves = _context.GameMoves
-    .Where(m => m.GameId == gameId && m.PlayerId == playerId)
-    .Select(m => new { m.X, m.Y })
-    .ToList();
+            var moves = _context.GameMoves
+                .Where(m => m.GameId == gameId && m.PlayerId == playerId)
+                .Select(m => new { m.X, m.Y })
+                .ToList();
 
-            if (moves.Count < 5) return false; // chưa đủ để thắng
+            if (moves.Count < 5) return false;
 
-            // Chuyển sang HashSet để tra cứu nhanh
             var moveSet = moves.Select(m => (m.X, m.Y)).ToHashSet();
 
-            // 4 hướng cần kiểm tra (ngang, dọc, chéo chính, chéo phụ)
             int[][] directions = new int[][]
             {
-    new int[]{1, 0},   // ngang
-    new int[]{0, 1},   // dọc
-    new int[]{1, 1},   // chéo chính
-    new int[]{1, -1}   // chéo phụ
+                new int[]{1, 0},
+                new int[]{0, 1},
+                new int[]{1, 1},
+                new int[]{1, -1}
             };
 
             foreach (var move in moves)
@@ -297,9 +304,8 @@ var moves = _context.GameMoves
                 foreach (var dir in directions)
                 {
                     int count = 1;
-
-                    // kiểm tra 1 phía
                     int dx = dir[0], dy = dir[1];
+
                     int x = move.X + dx, y = move.Y + dy;
                     while (moveSet.Contains(((byte)x, (byte)y)))
                     {
@@ -308,7 +314,6 @@ var moves = _context.GameMoves
                         y += dy;
                     }
 
-                    // kiểm tra phía ngược lại
                     x = move.X - dx;
                     y = move.Y - dy;
                     while (moveSet.Contains(((byte)x, (byte)y)))
@@ -319,32 +324,26 @@ var moves = _context.GameMoves
                     }
 
                     if (count >= 5)
-                        return true; // thắng
+                        return true;
                 }
             }
 
-            return false; // chưa thắng
-
-}
+            return false;
+        }
 
         public async Task<bool> DeleteGameAsync(int gameId)
         {
             var game = await _context.Games
-                .Include(g => g.Moves) // include để xóa luôn moves
+                .Include(g => g.Moves)
                 .FirstOrDefaultAsync(g => g.GameId == gameId);
 
             if (game == null)
                 return false;
 
-            // Xóa tất cả các moves trước
             _context.GameMoves.RemoveRange(game.Moves);
-
-            // Xóa luôn game
             _context.Games.Remove(game);
-
             await _context.SaveChangesAsync();
             return true;
         }
-
     }
 }
