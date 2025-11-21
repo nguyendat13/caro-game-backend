@@ -152,5 +152,13 @@ namespace backend.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+        [HttpGet("{userId}/stats")]
+        public async Task<IActionResult> GetStats(int userId)
+        {
+            var stats = await _service.GetUserStatsAsync(userId);
+            return Ok(stats);
+        }
+
     }
 }

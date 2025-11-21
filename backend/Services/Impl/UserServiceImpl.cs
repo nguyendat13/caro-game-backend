@@ -1,4 +1,5 @@
-﻿using backend.DTOs.User;
+﻿using backend.DTOs.Game;
+using backend.DTOs.User;
 using backend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -323,6 +324,46 @@ namespace backend.Services
                 Email = user.Email,
                 Phone = user.Phone,
                 RoleId = user.RoleId
+            };
+        }
+
+
+        public async Task<UserStatsDTO> GetUserStatsAsync(int userId)
+        {
+            // Lấy tất cả các game user tham gia
+            var allGames = await _context.Games
+                .Where(g => g.PlayerXId == userId || g.PlayerOId == userId)
+                .Where(g => g.Status == GameStatus.Finished)
+                .ToListAsync();
+
+            int totalGames = allGames.Count;
+            int totalWins = allGames.Count(g => g.WinnerId == userId);
+            int totalLosses = totalGames - totalWins;
+            double totalWinRate = totalGames > 0 ? Math.Round((double)totalWins / totalGames * 100, 2) : 0;
+
+            // Thống kê theo từng game
+            var groupedByGame = allGames
+                  .GroupBy(g => g.Type)
+                  .Select(g => new GameStatsDTO
+                  {
+                      GameName = g.Key.ToString(),
+                      GamesPlayed = g.Count(),
+                      Wins = g.Count(x => x.WinnerId == userId),
+                      Losses = g.Count(x => x.WinnerId != userId && x.WinnerId != null),
+                      WinRate = g.Count() > 0
+                          ? Math.Round((double)g.Count(x => x.WinnerId == userId) / g.Count() * 100, 2)
+                          : 0
+                  })
+                  .ToList();
+
+
+            return new UserStatsDTO
+            {
+                TotalGamesPlayed = totalGames,
+                TotalWins = totalWins,
+                TotalLosses = totalLosses,
+                TotalWinRate = totalWinRate,
+                GamesByType = groupedByGame
             };
         }
 

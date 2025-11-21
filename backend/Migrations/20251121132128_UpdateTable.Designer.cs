@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Models;
 
@@ -11,9 +12,11 @@ using backend.Models;
 namespace backend.Migrations
 {
     [DbContext(typeof(CaroDbContext))]
-    partial class CaroDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251121132128_UpdateTable")]
+    partial class UpdateTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,37 +81,6 @@ namespace backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Connections");
-                });
-
-            modelBuilder.Entity("backend.Models.Event", b =>
-                {
-                    b.Property<int>("EventId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("EventId");
-
-                    b.ToTable("Events");
-
-                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("backend.Models.Game", b =>
@@ -299,141 +271,6 @@ namespace backend.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Article", b =>
-                {
-                    b.HasBaseType("backend.Models.Event");
-
-                    b.Property<int?>("AuthorId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsGuide")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Tags")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Thumbnail")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("YoutubeLink")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasIndex("AuthorId");
-
-                    b.ToTable("Articles", (string)null);
-                });
-
-            modelBuilder.Entity("ChatChannel", b =>
-                {
-                    b.HasBaseType("backend.Models.Event");
-
-                    b.Property<bool>("IsPrivate")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MaxMembers")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("VoiceEnabled")
-                        .HasColumnType("bit");
-
-                    b.ToTable("ChatChannels", (string)null);
-                });
-
-            modelBuilder.Entity("ClanRecruit", b =>
-                {
-                    b.HasBaseType("backend.Models.Event");
-
-                    b.Property<string>("ClanName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Position")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RequiredRank")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable("ClanRecruits", (string)null);
-                });
-
-            modelBuilder.Entity("backend.Models.Announcement", b =>
-                {
-                    b.HasBaseType("backend.Models.Event");
-
-                    b.Property<string>("Audience")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable("Announcements", (string)null);
-                });
-
-            modelBuilder.Entity("backend.Models.CommunityEvent", b =>
-                {
-                    b.HasBaseType("backend.Models.Event");
-
-                    b.Property<DateTime>("EventDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Host")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable("CommunityEvents", (string)null);
-                });
-
-            modelBuilder.Entity("backend.Models.Tournament", b =>
-                {
-                    b.HasBaseType("backend.Models.Event");
-
-                    b.Property<string>("Format")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Game")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("MaxPlayers")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Prize")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time");
-
-                    b.ToTable("Tournaments", (string)null);
-                });
-
             modelBuilder.Entity("backend.Models.ChatMessage", b =>
                 {
                     b.HasOne("backend.Models.Game", "Game")
@@ -514,66 +351,6 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("Article", b =>
-                {
-                    b.HasOne("backend.Models.User", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId");
-
-                    b.HasOne("backend.Models.Event", null)
-                        .WithOne()
-                        .HasForeignKey("Article", "EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-                });
-
-            modelBuilder.Entity("ChatChannel", b =>
-                {
-                    b.HasOne("backend.Models.Event", null)
-                        .WithOne()
-                        .HasForeignKey("ChatChannel", "EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("ClanRecruit", b =>
-                {
-                    b.HasOne("backend.Models.Event", null)
-                        .WithOne()
-                        .HasForeignKey("ClanRecruit", "EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("backend.Models.Announcement", b =>
-                {
-                    b.HasOne("backend.Models.Event", null)
-                        .WithOne()
-                        .HasForeignKey("backend.Models.Announcement", "EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("backend.Models.CommunityEvent", b =>
-                {
-                    b.HasOne("backend.Models.Event", null)
-                        .WithOne()
-                        .HasForeignKey("backend.Models.CommunityEvent", "EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("backend.Models.Tournament", b =>
-                {
-                    b.HasOne("backend.Models.Event", null)
-                        .WithOne()
-                        .HasForeignKey("backend.Models.Tournament", "EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("backend.Models.Game", b =>

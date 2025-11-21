@@ -1,45 +1,74 @@
-# 🎮 Caro Game Server
+# Gami Caro Server (gami-caro-server)
 
-Backend của **Caro Game Online/Offline**, xây dựng bằng **C# .NET 8**, sử dụng **Entity Framework Core** cho database, **SignalR** cho realtime gameplay, và **JWT** cho bảo mật.
+**Nền tảng game tổng hợp các trò chơi-Gami** – Hệ thống backend đầy đủ cho game Caro online đa nền tảng với tính năng chuyên nghiệp: realtime multiplayer, bảng xếp hạng, cộng đồng, giải đấu, chat, sự kiện...
 
----
+### Tính năng chính
+- Realtime multiplayer Caro (Socket.IO)
+- Bảng xếp hạng toàn server (Top 100 + Mini Leaderboard)
+- Hệ thống giải đấu chuyên nghiệp (tạo, đăng ký, bracket tự động)
+- Cộng đồng + Chat realtime + Tạo kênh riêng
+- Đăng bài viết, hướng dẫn, tuyển clan, thông báo lớn
+- Hệ thống sự kiện đa dạng (tournament, livestream, update, recruit...)
+- Authentication JWT + Refresh Token
+- Role-based access (Admin, Moderator, User)
+- API sạch, chuẩn REST + WebSocket
+- Database SQL (SQL Server / PostgreSQL / MySQL)
 
-## 🚀 Giới thiệu
-Caro (Gomoku) là trò chơi dân gian được số hóa:
-- Chơi offline hoặc online với người khác
-- Hệ thống tài khoản, xếp hạng, lịch sử trận đấu
-- Quản lý Role, phân quyền, bảo mật OTP
-- API RESTful dễ tích hợp frontend (React, Vue, Next.js)
+### Công nghệ sử dụng
+- .NET 8.0 (C#)
+- ASP.NET Core Web API
+- Entity Framework Core
+- SignalR (Realtime)
+- JWT Authentication
+- AutoMapper
+- Swagger / OpenAPI
+- SQL Server (có thể đổi sang PostgreSQL/MySQL)
 
----
-
-## 🛠 Công nghệ
-- **Ngôn ngữ:** C# (.NET 8)
-- **Database:** SQL Server + EF Core
-- **Realtime:** SignalR
-- **Bảo mật:** JWT, Hash password, OTP
-- **Kiến trúc:** RESTful API, Service + Controller
-
----
-
-## 📂 Cấu trúc dự án
-backend/
-├── Controllers/ # Xử lý API
-├── DTOs/ # Data Transfer Objects
-├── Models/ # Entity + DbContext
-├── Services/ # Business logic + Interface
-├── Migrations/ # EF Core migrations
+### Cấu trúc thư mục
+gami-caro-server/
+├── Controllers/          # API Controllers
+├── Services/             # Business logic
+├── Hubs/                 # SignalR Hubs (GameHub, ChatHub)
+├── Models/               # Entity models
+├── DTOs/                 # Data Transfer Objects
+├── Data/                 # DbContext + Migrations
+├── Utils/                # Helpers, extensions
+├── wwwroot/              # Static files (nếu có)
 ├── Program.cs
-└── backend.csproj
+└── appsettings.json
 
----
 
-## ⚙️ Cài đặt
+### Các API chính
+| Route | Method | Mô tả |
+|------|--------|------|
+| `/api/Auth/login` | POST | Đăng nhập |
+| `/api/Auth/register` | POST | Đăng ký |
+| `/api/Game/start` | POST | Bắt đầu ván mới |
+| `/api/Game/move` | POST | Đánh nước đi (realtime) |
+| `/api/GameStats/leaderboard/{gameType}` | GET | Lấy bảng xếp hạng |
+| `/api/GameStats/recent/{userId}` | GET | Lịch sử trận gần đây |
+| `/api/Tournament/create` | POST | Tạo giải đấu |
+| `/api/Events` | GET | Danh sách sự kiện |
+| `/api/Chat` | WebSocket | Chat realtime |
 
-```bash
-git clone https://github.com/nguyendat13/caro-backend.git
-cd backend
+### Hướng dẫn chạy dự án
+
+## 1. Clone repo
+git clone https://github.com/yourusername/gami-caro-server.git
+cd gami-caro-server
+
+## 2.Cài đặt dependencies
+dotnet restore
+
+## 3.Cấu hình Connection String trong appsettings.json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost;Database=GamiCaroDB;Trusted_Connection=true;TrustServerCertificate=true;"
+}
+
+## 4.Chạy migrations
 dotnet ef database update
+
+## 5.Chạy server
 dotnet run
 
 ## Liên hệ

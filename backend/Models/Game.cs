@@ -7,6 +7,8 @@
         public int? PlayerOId { get; set; }       // FK User
         public int? WinnerId { get; set; }        // FK User, nullable
         public GameStatus Status { get; set; } = GameStatus.Pending;
+
+        public GameType Type { get; set; } = GameType.Caro;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

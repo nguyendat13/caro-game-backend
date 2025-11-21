@@ -20,6 +20,6 @@ namespace backend.Services
         Task<UserResponseDTO> UpdateProfileAsync(UpdateProfileDTO dto);
         Task RequestProfileUpdateAsync(UpdateProfileRequestDTO dto);
         Task<UserResponseDTO> ConfirmProfileUpdateAsync(ConfirmUpdateProfileDTO dto);
-
+        Task<UserStatsDTO> GetUserStatsAsync(int userId);
     }
 }

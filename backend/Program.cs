@@ -13,6 +13,7 @@ builder.Services.AddScoped<IRoleService,RoleServiceImpl>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IOtpCleanupService, OtpCleanupServiceImpl>();
 builder.Services.AddHostedService<OtpCleanupBackgroundService>();
+builder.Services.AddScoped<IGameStatsService, GameStatsServiceImpl>();
 
 // Add services to the container.
 

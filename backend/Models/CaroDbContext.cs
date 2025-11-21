@@ -12,10 +12,35 @@ namespace backend.Models
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<Connection> Connections { get; set; }
         public DbSet<ProfileUpdateOtp> ProfileUpdateOtps { get; set; }
-
         public DbSet<Role> Roles { get; set; }
+        public DbSet<Event> Events { get; set; }
+        public DbSet<Tournament> Tournaments { get; set; }
+        public DbSet<CommunityEvent> CommunityEvents { get; set; }
+        public DbSet<ClanRecruit> ClanRecruits { get; set; }
+        public DbSet<ChatChannel> ChatChannels { get; set; }
+        public DbSet<Article> Articles { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
+            // Sử dụng TPT (Table-per-Type) mapping
+            modelBuilder.Entity<Tournament>().ToTable("Tournaments");
+            modelBuilder.Entity<CommunityEvent>().ToTable("CommunityEvents");
+            modelBuilder.Entity<ClanRecruit>().ToTable("ClanRecruits");
+            modelBuilder.Entity<ChatChannel>().ToTable("ChatChannels");
+            modelBuilder.Entity<Article>().ToTable("Articles");
+            modelBuilder.Entity<Announcement>().ToTable("Announcements");
+
+            // Lưu enum dưới dạng string
+            modelBuilder.Entity<Event>()
+                .Property(e => e.Type)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Article>()
+                .Property(a => a.Category)
+                .HasConversion<string>();
+
+
             modelBuilder.Entity<Role>().HasData(
         new Role { RoleId = 1, RoleName = "superadmin" },
         new Role { RoleId = 2, RoleName = "admin" },
