@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 
 namespace backend.Services
@@ -13,32 +12,35 @@ namespace backend.Services
             _config = config;
         }
 
-        public void SendEmail(string toEmail, string subject, string body)
+        public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
             var emailSettings = _config.GetSection("EmailSettings");
+
             var smtpServer = emailSettings["SmtpServer"];
             var port = int.Parse(emailSettings["Port"]);
             var senderName = emailSettings["SenderName"];
             var senderEmail = emailSettings["SenderEmail"];
-            var password = emailSettings["Password"];
+            var username = emailSettings["Username"]; // Brevo Login
+            var password = emailSettings["Password"]; // Brevo SMTP Password
 
             using var smtpClient = new SmtpClient(smtpServer)
             {
                 Port = port,
-                Credentials = new NetworkCredential(senderEmail, password),
+                Credentials = new NetworkCredential(username, password),
                 EnableSsl = true
             };
 
-            var mailMessage = new MailMessage
+            using var mailMessage = new MailMessage
             {
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true
             };
+
             mailMessage.To.Add(toEmail);
 
-            smtpClient.Send(mailMessage);
+            await smtpClient.SendMailAsync(mailMessage); // ✔ Async
         }
     }
 }

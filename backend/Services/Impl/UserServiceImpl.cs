@@ -1,6 +1,7 @@
 ﻿using backend.DTOs.Game;
 using backend.DTOs.User;
 using backend.Models;
+using backend.Models.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -73,23 +74,90 @@ namespace backend.Services
         }
 
         // ✅ Xóa người dùng (chỉ admin/superadmin mới được xóa)
-        public async Task<bool> DeleteAsync(int userId, int currentUserRoleId)
+        public async Task<bool> DeleteAsync(int userId, int currentUserRoleId, int currentUserId)
         {
-            if (currentUserRoleId != 1 && currentUserRoleId != 2)
+            if (currentUserRoleId != 1 && currentUserRoleId != 2 && userId != currentUserId)
                 throw new Exception("Bạn không có quyền xóa người dùng.");
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users.Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
             if (user == null)
                 throw new Exception("Không tìm thấy người dùng cần xóa.");
+
+            if (currentUserRoleId == 2 && user.Role.RoleName.ToLower() == "superadmin")
+                throw new Exception("Admin không thể xóa Superadmin.");
 
             bool hasOngoingGame = await _context.Games
                 .AnyAsync(g => (g.PlayerXId == userId || g.PlayerOId == userId) && g.Status == GameStatus.Ongoing);
 
             if (hasOngoingGame)
                 throw new Exception("Người dùng hiện đang trong trận đấu, không thể xóa.");
+            // Lấy tất cả các game của user
+            var games = await _context.Games
+                .Where(g => g.PlayerXId == userId || g.PlayerOId == userId)
+                .ToListAsync();
 
+            // Nếu Superadmin xóa Admin, bạn có thể xóa luôn các game (hoặc set PlayerXId = null)
+            foreach (var game in games)
+            {
+                // Option 1: Xóa luôn game
+                _context.Games.Remove(game);
+
+                // Option 2: Hoặc set PlayerXId/PlayerOId = null nếu muốn giữ game
+                // if (game.PlayerXId == userId) game.PlayerXId = null;
+                // if (game.PlayerOId == userId) game.PlayerOId = null;
+            }
+            if (userId == currentUserId)
+            {
+                // Tạo OTP
+                var otpCode = new Random().Next(100000, 999999).ToString();
+                var otpRecord = new DeleteAccountOtp
+                {
+                    UserId = userId,
+                    OtpCode = otpCode,
+                    Expiration = DateTime.UtcNow.AddMinutes(5)
+                };
+
+                _context.DeleteAccountOtps.Add(otpRecord);
+                await _context.SaveChangesAsync();
+
+                // Gửi OTP email
+                var emailBody = $@"
+        <p>Xin chào {user.FullName ?? user.Username},</p>
+        <p>Bạn vừa yêu cầu xóa tài khoản của mình.</p>
+        <p>Mã xác nhận để xóa tài khoản: <strong>{otpCode}</strong></p>
+        <p>Mã này có hiệu lực trong 5 phút. Nếu bạn không thực hiện thao tác này, vui lòng bỏ qua email.</p>
+        <p>Trân trọng,<br/>Caro Game</p>";
+
+                await _emailService.SendEmailAsync(user.Email, "Xác nhận xóa tài khoản", emailBody);
+
+                return true; // ❌ Chưa xóa, chờ OTP confirm
+            }
+
+            // Nếu admin xóa người khác thì xóa luôn
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
+            return true;
+        }
+       
+        public async Task<bool> ConfirmDeleteAsync(int userId, string otpCode)
+        {
+            var otpRecord = await _context.DeleteAccountOtps
+                .Where(o => o.UserId == userId && o.OtpCode == otpCode)
+                .OrderByDescending(o => o.Expiration)
+                .FirstOrDefaultAsync();
+
+            if (otpRecord == null || otpRecord.Expiration < DateTime.UtcNow)
+                throw new Exception("OTP không hợp lệ hoặc đã hết hạn.");
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) throw new Exception("Người dùng không tồn tại.");
+
+            _context.Users.Remove(user);
+            _context.DeleteAccountOtps.Remove(otpRecord);
+            await _context.SaveChangesAsync();
+
             return true;
         }
 
@@ -128,33 +196,24 @@ namespace backend.Services
         }
 
         // ✅ Cập nhật thông tin người dùng (có thể thay RoleId nếu là admin/superadmin)
-        public async Task<UserResponseDTO> UpdateAsync(UserUpdateDTO dto, int currentUserRoleId)
+        public async Task<UserResponseDTO> UpdateRoleAsync(UpdateUserRoleDTO dto, int currentUserRoleId, int currentUserId)
         {
-            if (currentUserRoleId != 1 && currentUserRoleId != 2)
-                throw new Exception("Bạn không có quyền cập nhật Role.");
+            if (currentUserRoleId != 1)
+                throw new Exception("Chỉ Superadmin mới có quyền thay đổi vai trò.");
 
             var user = await _context.Users.FindAsync(dto.UserId);
             if (user == null)
-                throw new Exception("Không tìm thấy người dùng để cập nhật.");
+                throw new Exception("Không tìm thấy người dùng.");
 
-            if (await _context.Users.AnyAsync(u => u.Username == dto.Username && u.UserId != dto.UserId))
-                throw new Exception("Tên đăng nhập đã tồn tại, vui lòng chọn tên khác.");
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email && u.UserId != dto.UserId))
-                throw new Exception("Email đã tồn tại, vui lòng chọn email khác.");
+            if (user.UserId == currentUserId)
+                throw new Exception("Bạn không thể đổi vai trò của chính mình.");
 
-            user.Username = dto.Username;
-            user.FullName = dto.FullName;
-            user.Email = dto.Email;
-            user.Phone = dto.Phone;
+            if (user.RoleId == 1 && dto.RoleId != 1)
+                throw new Exception("Không thể giảm quyền của Superadmin khác.");
 
-            if (!string.IsNullOrEmpty(dto.Password))
-                user.PasswordHash = HashPassword(user, dto.Password);
-
-            // Chỉ admin/superadmin mới có thể cập nhật Role
-            if (currentUserRoleId == 1 || currentUserRoleId == 2)
-                user.RoleId = dto.RoleId;
-
+            user.RoleId = dto.RoleId;
             user.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
             return new UserResponseDTO
@@ -261,7 +320,7 @@ namespace backend.Services
             await _context.SaveChangesAsync();
 
             // Gửi về email cũ trước khi thay đổi
-            _emailService.SendEmail(user.Email, "Xác nhận cập nhật hồ sơ - Caro Game",
+            await _emailService.SendEmailAsync(user.Email, "Xác nhận cập nhật hồ sơ - Caro Game",
     $@"
     <div style='font-family: Arial, sans-serif; color: #333; line-height: 1.5;'>
         <h2 style='color: #8c6746;'>Caro Game</h2>

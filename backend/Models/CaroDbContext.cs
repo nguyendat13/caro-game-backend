@@ -20,6 +20,13 @@ namespace backend.Models
         public DbSet<ChatChannel> ChatChannels { get; set; }
         public DbSet<Article> Articles { get; set; }
         public DbSet<Announcement> Announcements { get; set; }
+        public DbSet<ChannelMember> ChannelMembers { get; set; }
+        public DbSet<VoiceChannel> VoiceChannels { get; set; }
+        public DbSet<VoiceParticipant> VoiceParticipants { get; set; }
+        public DbSet<VoiceSettings> VoiceSettings { get; set; }
+        public DbSet<MessageReaction> MessageReactions { get; set; }
+        public DbSet<EventFeature> EventFeatures { get; set; }
+        public DbSet<DeleteAccountOtp> DeleteAccountOtps { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
 
@@ -46,6 +53,75 @@ namespace backend.Models
         new Role { RoleId = 2, RoleName = "admin" },
         new Role { RoleId = 3, RoleName = "user" }
     );
+            modelBuilder.Entity<VoiceSettings>(entity =>
+            {
+                entity.HasKey(vs => vs.UserId);
+
+                entity.HasOne(vs => vs.User)
+                    .WithOne(u => u.VoiceSettings)
+                    .HasForeignKey<VoiceSettings>(vs => vs.UserId);
+
+                entity.Property(vs => vs.InputVolume)
+                    .HasPrecision(5, 2); // vd: 100.00
+
+                entity.Property(vs => vs.OutputVolume)
+                    .HasPrecision(5, 2);
+
+                entity.Property(vs => vs.VoiceActivationThreshold)
+                    .HasPrecision(6, 2); // ví dụ: -40.00
+            });
+
+
+            modelBuilder.Entity<VoiceParticipant>()
+    .HasKey(vp => new { vp.UserId, vp.VoiceChannelId });
+
+            modelBuilder.Entity<VoiceParticipant>()
+                .HasOne(vp => vp.User)
+                .WithMany(u => u.VoiceParticipants)
+                .HasForeignKey(vp => vp.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VoiceParticipant>()
+                .HasOne(vp => vp.VoiceChannel)
+                .WithMany(vc => vc.Participants)
+                .HasForeignKey(vp => vp.VoiceChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MessageReaction>()
+                .HasKey(mr => new { mr.MessageId, mr.UserId, mr.Emoji });
+
+            modelBuilder.Entity<MessageReaction>()
+                .HasOne(mr => mr.Message)
+                .WithMany(m => m.Reactions)
+                .HasForeignKey(mr => mr.MessageId);
+
+            modelBuilder.Entity<MessageReaction>()
+                .HasOne(mr => mr.User)
+                .WithMany(u => u.MessageReactions)
+                .HasForeignKey(mr => mr.UserId);
+
+            modelBuilder.Entity<ChannelMember>()
+            .HasKey(cm => new { cm.UserId, cm.ChannelId });
+
+            modelBuilder.Entity<ChannelMember>()
+                .HasOne(cm => cm.User)
+                .WithMany(u => u.ChannelMembers)
+                .HasForeignKey(cm => cm.UserId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ChannelMember>()
+                .HasOne(cm => cm.Channel)
+                .WithMany(c => c.Members)
+                .HasForeignKey(cm => cm.ChannelId);
+
+
+            modelBuilder.Entity<ChatChannel>()
+              .HasOne(c => c.Creator)
+                .WithMany(u => u.CreatedChannels)
+              .HasForeignKey(c => c.CreatorId)
+              .OnDelete(DeleteBehavior.Restrict); // tránh multiple cascade
+
+
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();

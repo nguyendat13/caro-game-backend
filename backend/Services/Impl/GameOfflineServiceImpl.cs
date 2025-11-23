@@ -1,5 +1,6 @@
 ﻿using backend.DTOs.Game;
 using backend.Models;
+using backend.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 

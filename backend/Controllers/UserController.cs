@@ -56,16 +56,15 @@ namespace backend.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UserUpdateDTO dto)
+        [HttpPut("update-role")]
+        public async Task<IActionResult> UpdateRole([FromBody] UpdateUserRoleDTO dto)
         {
-            if (id != dto.UserId) return BadRequest();
-
             try
             {
                 int currentUserRoleId = GetCurrentUserRoleId();
-                var updated = await _service.UpdateAsync(dto, currentUserRoleId);
-                if (updated == null) return NotFound();
+                int currentUserId = int.Parse(User.FindFirst("userId")!.Value);
+
+                var updated = await _service.UpdateRoleAsync(dto, currentUserRoleId, currentUserId);
                 return Ok(updated);
             }
             catch (Exception ex)
@@ -74,15 +73,29 @@ namespace backend.Controllers
             }
         }
 
+
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            int currentUserRoleId = GetCurrentUserRoleId();
+            int currentUserId = int.Parse(User.FindFirst("userId")!.Value);
+
+            var result = await _service.DeleteAsync(id, currentUserRoleId, currentUserId);
+
+            if (id == currentUserId)
+                return Ok(new { message = "Một email xác nhận đã được gửi tới bạn. Vui lòng kiểm tra hộp thư trước khi xóa tài khoản." });
+
+            return NoContent(); // admin/superadmin xóa người khác
+        }
+
+        [HttpPost("confirm-delete")]
+        public async Task<IActionResult> ConfirmDelete([FromBody] ConfirmDeleteDTO dto)
+        {
             try
             {
-                int currentUserRoleId = GetCurrentUserRoleId();
-                var result = await _service.DeleteAsync(id, currentUserRoleId);
-                if (!result) return NotFound();
-                return NoContent();
+                await _service.ConfirmDeleteAsync(dto.UserId, dto.OtpCode);
+                return Ok(new { message = "Xóa tài khoản thành công." });
             }
             catch (Exception ex)
             {

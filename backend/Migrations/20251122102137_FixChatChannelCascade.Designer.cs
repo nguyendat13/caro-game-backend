@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Models;
 
@@ -11,9 +12,11 @@ using backend.Models;
 namespace backend.Migrations
 {
     [DbContext(typeof(CaroDbContext))]
-    partial class CaroDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251122102137_FixChatChannelCascade")]
+    partial class FixChatChannelCascade
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -112,29 +115,6 @@ namespace backend.Migrations
                     b.ToTable("Connections");
                 });
 
-            modelBuilder.Entity("backend.Models.DeleteAccountOtp", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Expiration")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OtpCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DeleteAccountOtps");
-                });
-
             modelBuilder.Entity("backend.Models.Event", b =>
                 {
                     b.Property<int>("EventId")
@@ -164,28 +144,6 @@ namespace backend.Migrations
                     b.ToTable("Events");
 
                     b.UseTptMappingStrategy();
-                });
-
-            modelBuilder.Entity("backend.Models.EventFeature", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("EventId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId");
-
-                    b.ToTable("EventFeatures");
                 });
 
             modelBuilder.Entity("backend.Models.Game", b =>
@@ -735,17 +693,6 @@ namespace backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("backend.Models.EventFeature", b =>
-                {
-                    b.HasOne("backend.Models.Event", "Event")
-                        .WithMany("Features")
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-                });
-
             modelBuilder.Entity("backend.Models.Game", b =>
                 {
                     b.HasOne("backend.Models.User", "PlayerO")
@@ -929,11 +876,6 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.ChatMessage", b =>
                 {
                     b.Navigation("Reactions");
-                });
-
-            modelBuilder.Entity("backend.Models.Event", b =>
-                {
-                    b.Navigation("Features");
                 });
 
             modelBuilder.Entity("backend.Models.Game", b =>

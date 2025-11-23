@@ -14,6 +14,7 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IOtpCleanupService, OtpCleanupServiceImpl>();
 builder.Services.AddHostedService<OtpCleanupBackgroundService>();
 builder.Services.AddScoped<IGameStatsService, GameStatsServiceImpl>();
+builder.Services.AddScoped<IEventService, EventServiceImpl>();
 
 // Add services to the container.
 

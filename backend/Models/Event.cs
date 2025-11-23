@@ -29,5 +29,7 @@ namespace backend.Models
         public EventType Type { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<EventFeature> Features { get; set; } = new List<EventFeature>();
+
     }
 }

@@ -9,11 +9,11 @@ namespace backend.Services
         Task<UserResponseDTO> GetByIdAsync(int userId);
 
         // Update người dùng (có RoleId) chỉ admin/superadmin mới gọi
-        Task<UserResponseDTO> UpdateAsync(UserUpdateDTO dto, int currentUserRoleId);
+        Task<UserResponseDTO> UpdateRoleAsync(UpdateUserRoleDTO dto, int currentUserRoleId, int currentUserId);
 
         // Xóa người dùng (chỉ admin/superadmin)
-        Task<bool> DeleteAsync(int userId, int currentUserRoleId);
-
+        Task<bool> DeleteAsync(int userId, int currentUserRoleId, int currentUserId);
+        Task<bool> ConfirmDeleteAsync(int userId, string otpCode);
         Task<bool> ChangePasswordAsync(ChangePasswordDTO dto);
 
         // Update profile cá nhân bình thường (không cho RoleId)

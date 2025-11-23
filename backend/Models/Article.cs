@@ -28,4 +28,6 @@ public class Article : Event
 
     public int? AuthorId { get; set; }
     public User Author { get; set; }
+    public int Views { get; set; } = 0;
+    public int Likes { get; set; } = 0;
 }

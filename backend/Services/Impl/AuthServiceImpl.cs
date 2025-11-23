@@ -16,11 +16,13 @@ namespace backend.Services
         private readonly CaroDbContext _context;
         private readonly IConfiguration _config;
         private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
+        private readonly EmailService _emailService;
 
-        public AuthServiceImpl(CaroDbContext context, IConfiguration config)
+        public AuthServiceImpl(CaroDbContext context, IConfiguration config, EmailService emailService)
         {
             _context = context;
             _config = config;
+            _emailService = emailService;
         }
 
         private string HashPassword(User user, string password)
@@ -161,18 +163,18 @@ namespace backend.Services
             await _context.SaveChangesAsync();
 
             var emailBody = $@"
-                <p>Xin chào {user.FullName ?? user.Username},</p>
-                <p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
-                <p><strong>Mật khẩu tạm thời:</strong> {tempPassword}</p>
-                <p>Vui lòng đăng nhập và đổi mật khẩu ngay lập tức để bảo mật tài khoản của bạn.</p>
-                <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
-                <p>Trân trọng,<br/>{_config["EmailSettings:SenderName"]}</p>
-            ";
+            <p>Xin chào {user.FullName ?? user.Username},</p>
+            <p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
+            <p><strong>Mật khẩu tạm thời:</strong> {tempPassword}</p>
+            <p>Vui lòng đăng nhập và đổi mật khẩu ngay lập tức để bảo mật tài khoản của bạn.</p>
+            <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+            <p>Trân trọng,<br/>{_config["EmailSettings:SenderName"]}</p>
+        ";
 
             try
             {
-                var emailService = new EmailService(_config);
-                emailService.SendEmail(user.Email, "Yêu cầu đặt lại mật khẩu", emailBody);
+                // ❌ Không new EmailService nữa
+               await _emailService.SendEmailAsync(user.Email, "Yêu cầu đặt lại mật khẩu", emailBody);
                 return true;
             }
             catch (Exception ex)
