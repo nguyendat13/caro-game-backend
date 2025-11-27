@@ -3,8 +3,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace backend.Models;
 
-public class ChatChannel : Event
+public class ChatChannel 
 {
+    [Key]
+    public int Id { get; set; }
     [Required]
     [StringLength(100)]
     public string Name { get; set; } = string.Empty;
@@ -30,7 +32,10 @@ public class ChatChannel : Event
     public User Creator { get; set; } = null!;
     public VoiceChannel VoiceChannel { get; set; }
 
-    // Navigation
+    // Navigation property
+    public int? EventRefId { get; set; }
+    public Event? Event { get; set; }
+
     public ICollection<ChannelMember> Members { get; set; } = new List<ChannelMember>();
     public ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
 }

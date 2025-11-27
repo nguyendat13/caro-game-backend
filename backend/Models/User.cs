@@ -26,6 +26,8 @@
 
         public ICollection<MessageReaction> MessageReactions { get; set; } = new List<MessageReaction>();
         public ICollection<VoiceParticipant> VoiceParticipants { get; set; } = new List<VoiceParticipant>();
+        public ICollection<ChannelInvite> ChannelInvites { get; set; } = new List<ChannelInvite>();  // Lời mời mà user nhận
+        public ICollection<ChannelInvite> SentChannelInvites { get; set; } = new List<ChannelInvite>(); // Lời mời mà user gửi
 
     }
 }

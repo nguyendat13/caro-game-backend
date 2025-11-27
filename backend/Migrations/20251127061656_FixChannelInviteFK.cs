@@ -8,11 +8,26 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class FixChatChannelCascade : Migration
+    public partial class FixChannelInviteFK : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "DeleteAccountOtps",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    OtpCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Expiration = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DeleteAccountOtps", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Events",
                 columns: table => new
@@ -20,7 +35,7 @@ namespace backend.Migrations
                     EventId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Title = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -63,18 +78,26 @@ namespace backend.Migrations
                 name: "Announcements",
                 columns: table => new
                 {
-                    EventId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Audience = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsPinned = table.Column<bool>(type: "bit", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EventRefId = table.Column<int>(type: "int", nullable: true),
+                    EventId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Announcements", x => x.EventId);
+                    table.PrimaryKey("PK_Announcements", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Announcements_Events_EventId",
                         column: x => x.EventId,
+                        principalTable: "Events",
+                        principalColumn: "EventId");
+                    table.ForeignKey(
+                        name: "FK_Announcements_Events_EventRefId",
+                        column: x => x.EventRefId,
                         principalTable: "Events",
                         principalColumn: "EventId",
                         onDelete: ReferentialAction.Cascade);
@@ -84,18 +107,26 @@ namespace backend.Migrations
                 name: "ClanRecruits",
                 columns: table => new
                 {
-                    EventId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     ClanName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RequiredRank = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PositionNeeded = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Contact = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Contact = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    EventRefId = table.Column<int>(type: "int", nullable: true),
+                    EventId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ClanRecruits", x => x.EventId);
+                    table.PrimaryKey("PK_ClanRecruits", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ClanRecruits_Events_EventId",
                         column: x => x.EventId,
+                        principalTable: "Events",
+                        principalColumn: "EventId");
+                    table.ForeignKey(
+                        name: "FK_ClanRecruits_Events_EventRefId",
+                        column: x => x.EventRefId,
                         principalTable: "Events",
                         principalColumn: "EventId",
                         onDelete: ReferentialAction.Cascade);
@@ -105,19 +136,47 @@ namespace backend.Migrations
                 name: "CommunityEvents",
                 columns: table => new
                 {
-                    EventId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Location = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     StreamLink = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     EventDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EventTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    Host = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Host = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    EventRefId = table.Column<int>(type: "int", nullable: true),
+                    EventId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CommunityEvents", x => x.EventId);
+                    table.PrimaryKey("PK_CommunityEvents", x => x.Id);
                     table.ForeignKey(
                         name: "FK_CommunityEvents_Events_EventId",
+                        column: x => x.EventId,
+                        principalTable: "Events",
+                        principalColumn: "EventId");
+                    table.ForeignKey(
+                        name: "FK_CommunityEvents_Events_EventRefId",
+                        column: x => x.EventRefId,
+                        principalTable: "Events",
+                        principalColumn: "EventId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EventFeatures",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EventId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EventFeatures", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EventFeatures_Events_EventId",
                         column: x => x.EventId,
                         principalTable: "Events",
                         principalColumn: "EventId",
@@ -128,7 +187,9 @@ namespace backend.Migrations
                 name: "Tournaments",
                 columns: table => new
                 {
-                    EventId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Game = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Format = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -137,14 +198,21 @@ namespace backend.Migrations
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
                     Rules = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsRegistrationOpen = table.Column<bool>(type: "bit", nullable: false)
+                    IsRegistrationOpen = table.Column<bool>(type: "bit", nullable: false),
+                    EventRefId = table.Column<int>(type: "int", nullable: true),
+                    EventId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Tournaments", x => x.EventId);
+                    table.PrimaryKey("PK_Tournaments", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Tournaments_Events_EventId",
                         column: x => x.EventId,
+                        principalTable: "Events",
+                        principalColumn: "EventId");
+                    table.ForeignKey(
+                        name: "FK_Tournaments_Events_EventRefId",
+                        column: x => x.EventRefId,
                         principalTable: "Events",
                         principalColumn: "EventId",
                         onDelete: ReferentialAction.Cascade);
@@ -180,7 +248,9 @@ namespace backend.Migrations
                 name: "Articles",
                 columns: table => new
                 {
-                    EventId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Title = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Thumbnail = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Tags = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -189,14 +259,21 @@ namespace backend.Migrations
                     Category = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AuthorId = table.Column<int>(type: "int", nullable: true),
                     Views = table.Column<int>(type: "int", nullable: false),
-                    Likes = table.Column<int>(type: "int", nullable: false)
+                    Likes = table.Column<int>(type: "int", nullable: false),
+                    EventRefId = table.Column<int>(type: "int", nullable: true),
+                    EventId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Articles", x => x.EventId);
+                    table.PrimaryKey("PK_Articles", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Articles_Events_EventId",
                         column: x => x.EventId,
+                        principalTable: "Events",
+                        principalColumn: "EventId");
+                    table.ForeignKey(
+                        name: "FK_Articles_Events_EventRefId",
+                        column: x => x.EventRefId,
                         principalTable: "Events",
                         principalColumn: "EventId",
                         onDelete: ReferentialAction.Cascade);
@@ -211,22 +288,32 @@ namespace backend.Migrations
                 name: "ChatChannels",
                 columns: table => new
                 {
-                    EventId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     IsPrivate = table.Column<bool>(type: "bit", nullable: false),
                     RequireInvite = table.Column<bool>(type: "bit", nullable: false),
                     VoiceEnabled = table.Column<bool>(type: "bit", nullable: false),
                     MaxMembers = table.Column<int>(type: "int", nullable: false),
                     ModeratorToolsEnabled = table.Column<bool>(type: "bit", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatorId = table.Column<int>(type: "int", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatorId = table.Column<int>(type: "int", nullable: false),
+                    EventRefId = table.Column<int>(type: "int", nullable: true),
+                    EventId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChatChannels", x => x.EventId);
+                    table.PrimaryKey("PK_ChatChannels", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ChatChannels_Events_EventId",
                         column: x => x.EventId,
+                        principalTable: "Events",
+                        principalColumn: "EventId");
+                    table.ForeignKey(
+                        name: "FK_ChatChannels_Events_EventRefId",
+                        column: x => x.EventRefId,
                         principalTable: "Events",
                         principalColumn: "EventId",
                         onDelete: ReferentialAction.Cascade);
@@ -322,6 +409,42 @@ namespace backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ChannelInvites",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ChannelId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    InvitedById = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Accepted = table.Column<bool>(type: "bit", nullable: false),
+                    Rejected = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChannelInvites", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChannelInvites_ChatChannels_ChannelId",
+                        column: x => x.ChannelId,
+                        principalTable: "ChatChannels",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ChannelInvites_Users_InvitedById",
+                        column: x => x.InvitedById,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ChannelInvites_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ChannelMembers",
                 columns: table => new
                 {
@@ -339,7 +462,7 @@ namespace backend.Migrations
                         name: "FK_ChannelMembers_ChatChannels_ChannelId",
                         column: x => x.ChannelId,
                         principalTable: "ChatChannels",
-                        principalColumn: "EventId",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ChannelMembers_Users_UserId",
@@ -370,7 +493,7 @@ namespace backend.Migrations
                         name: "FK_VoiceChannels_ChatChannels_ChatChannelId",
                         column: x => x.ChatChannelId,
                         principalTable: "ChatChannels",
-                        principalColumn: "EventId",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -393,7 +516,7 @@ namespace backend.Migrations
                         name: "FK_ChatMessages_ChatChannels_ChannelId",
                         column: x => x.ChannelId,
                         principalTable: "ChatChannels",
-                        principalColumn: "EventId");
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_ChatMessages_Games_GameId",
                         column: x => x.GameId,
@@ -493,6 +616,19 @@ namespace backend.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "Events",
+                columns: new[] { "EventId", "CreatedAt", "Description", "Title", "Type" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2025, 11, 23, 7, 6, 21, 417, DateTimeKind.Unspecified).AddTicks(3744), "Tổ chức giải đấu chuyên nghiệp với bảng xếp hạng tự động", "Giải Đấu", "Tournament" },
+                    { 2, new DateTime(2025, 11, 23, 7, 9, 27, 748, DateTimeKind.Unspecified).AddTicks(7092), "Tạo phòng chat riêng cho nhóm, clan hoặc sự kiện", "Kênh Chat Mới", "ChatChannel" },
+                    { 3, new DateTime(2025, 11, 23, 7, 10, 5, 302, DateTimeKind.Unspecified).AddTicks(6004), "Tổ chức buổi livestream, workshop, AMA...", "Sự Kiện Cộng Đồng", "CommunityEvent" },
+                    { 4, new DateTime(2025, 11, 23, 7, 10, 42, 580, DateTimeKind.Unspecified).AddTicks(3229), "Tìm đồng đội, thành lập team thi đấu", "Tuyển Thành Viên Clan", "ClanRecruit" },
+                    { 5, new DateTime(2025, 11, 23, 7, 11, 22, 268, DateTimeKind.Unspecified).AddTicks(185), "Gửi thông báo quan trọng đến toàn server", "Thông Báo Lớn", "Announcement" },
+                    { 6, new DateTime(2025, 11, 23, 7, 12, 3, 836, DateTimeKind.Unspecified).AddTicks(810), "Viết bài hướng dẫn, chia sẻ chiến lược, câu chuyện cá nhân", "Đăng Bài Viết", "Article" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "RoleId", "RoleName" },
                 values: new object[,]
@@ -503,9 +639,48 @@ namespace backend.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Announcements_EventId",
+                table: "Announcements",
+                column: "EventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Announcements_EventRefId",
+                table: "Announcements",
+                column: "EventRefId",
+                unique: true,
+                filter: "[EventRefId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Articles_AuthorId",
                 table: "Articles",
                 column: "AuthorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Articles_EventId",
+                table: "Articles",
+                column: "EventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Articles_EventRefId",
+                table: "Articles",
+                column: "EventRefId",
+                unique: true,
+                filter: "[EventRefId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChannelInvites_ChannelId",
+                table: "ChannelInvites",
+                column: "ChannelId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChannelInvites_InvitedById",
+                table: "ChannelInvites",
+                column: "InvitedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChannelInvites_UserId",
+                table: "ChannelInvites",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ChannelMembers_ChannelId",
@@ -516,6 +691,18 @@ namespace backend.Migrations
                 name: "IX_ChatChannels_CreatorId",
                 table: "ChatChannels",
                 column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatChannels_EventId",
+                table: "ChatChannels",
+                column: "EventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatChannels_EventRefId",
+                table: "ChatChannels",
+                column: "EventRefId",
+                unique: true,
+                filter: "[EventRefId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ChatMessages_ChannelId",
@@ -533,9 +720,38 @@ namespace backend.Migrations
                 column: "SenderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ClanRecruits_EventId",
+                table: "ClanRecruits",
+                column: "EventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClanRecruits_EventRefId",
+                table: "ClanRecruits",
+                column: "EventRefId",
+                unique: true,
+                filter: "[EventRefId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommunityEvents_EventId",
+                table: "CommunityEvents",
+                column: "EventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommunityEvents_EventRefId",
+                table: "CommunityEvents",
+                column: "EventRefId",
+                unique: true,
+                filter: "[EventRefId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Connections_UserId",
                 table: "Connections",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventFeatures_EventId",
+                table: "EventFeatures",
+                column: "EventId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GameMoves_GameId",
@@ -566,6 +782,18 @@ namespace backend.Migrations
                 name: "IX_MessageReactions_UserId",
                 table: "MessageReactions",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tournaments_EventId",
+                table: "Tournaments",
+                column: "EventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tournaments_EventRefId",
+                table: "Tournaments",
+                column: "EventRefId",
+                unique: true,
+                filter: "[EventRefId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -606,6 +834,9 @@ namespace backend.Migrations
                 name: "Articles");
 
             migrationBuilder.DropTable(
+                name: "ChannelInvites");
+
+            migrationBuilder.DropTable(
                 name: "ChannelMembers");
 
             migrationBuilder.DropTable(
@@ -616,6 +847,12 @@ namespace backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "Connections");
+
+            migrationBuilder.DropTable(
+                name: "DeleteAccountOtps");
+
+            migrationBuilder.DropTable(
+                name: "EventFeatures");
 
             migrationBuilder.DropTable(
                 name: "GameMoves");

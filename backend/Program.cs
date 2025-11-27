@@ -1,5 +1,6 @@
 ﻿using backend.Models;
 using backend.Services;
+using backend.Services.Impl;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -15,6 +16,9 @@ builder.Services.AddScoped<IOtpCleanupService, OtpCleanupServiceImpl>();
 builder.Services.AddHostedService<OtpCleanupBackgroundService>();
 builder.Services.AddScoped<IGameStatsService, GameStatsServiceImpl>();
 builder.Services.AddScoped<IEventService, EventServiceImpl>();
+builder.Services.AddScoped<IChatChannelService, ChatChannelServiceImpl>();
+builder.Services.AddScoped<IChatMessageService, ChatMessageServiceImpl>();
+builder.Services.AddScoped<INotificationService, NotificationServiceImpl>();
 
 // Add services to the container.
 

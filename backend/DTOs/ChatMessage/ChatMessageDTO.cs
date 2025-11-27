@@ -1,4 +1,4 @@
-﻿namespace backend.DTOs
+﻿namespace backend.DTOs.ChatMessage
 {
     public class ChatMessageDTO
     {

@@ -10,8 +10,11 @@ public enum ArticleCategory
     Story
 }
 
-public class Article : Event
+public class Article 
 {
+    [Key]
+    public int Id { get; set; }
+
     [Required]
     [MaxLength(250)]
     public string Title { get; set; }
@@ -30,4 +33,7 @@ public class Article : Event
     public User Author { get; set; }
     public int Views { get; set; } = 0;
     public int Likes { get; set; } = 0;
+    // Navigation property
+    public int? EventRefId { get; set; }
+    public Event? Event { get; set; }
 }

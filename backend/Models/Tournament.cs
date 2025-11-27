@@ -6,8 +6,11 @@ namespace backend.Models
 {
     // 2. Tournament.cs
     [Table("Tournaments")]
-    public class Tournament : Event
+    public class Tournament 
     {
+        [Key]
+        public int Id { get; set; }
+        public string? Description { get; set; }
 
         public string Name { get; set; }
         [Required]
@@ -26,6 +29,10 @@ namespace backend.Models
         public string? Rules { get; set; }
 
         public bool IsRegistrationOpen { get; set; } = true;
+
+        // Navigation property
+        public int? EventRefId { get; set; }
+        public Event? Event { get; set; }
     }
 
 }

@@ -5,8 +5,11 @@ namespace backend.Models
 {
     // 7. Announcement.cs
     [Table("Announcements")]
-    public class Announcement : Event
+    public class Announcement 
     {
+        [Key]
+        public int Id { get; set; }
+
         [Required]
         public string Content { get; set; } = string.Empty;
 
@@ -14,6 +17,9 @@ namespace backend.Models
 
         public bool IsPinned { get; set; } = false;
         public DateTime? ExpiresAt { get; set; }
+        // Navigation property
+        public int? EventRefId { get; set; }
+        public Event? Event { get; set; }
     }
 
 }

@@ -27,6 +27,9 @@ namespace backend.Models
         public DbSet<MessageReaction> MessageReactions { get; set; }
         public DbSet<EventFeature> EventFeatures { get; set; }
         public DbSet<DeleteAccountOtp> DeleteAccountOtps { get; set; }
+        public DbSet<ChannelInvite> ChannelInvites { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
 
@@ -53,6 +56,64 @@ namespace backend.Models
         new Role { RoleId = 2, RoleName = "admin" },
         new Role { RoleId = 3, RoleName = "user" }
     );
+            modelBuilder.Entity<Event>().HasData(
+    new Event { EventId = 1, Title = "Giải Đấu", Description = "Tổ chức giải đấu chuyên nghiệp với bảng xếp hạng tự động", Type = EventType.Tournament, CreatedAt = DateTime.Parse("2025-11-23T07:06:21.4173744") },
+    new Event { EventId = 2, Title = "Kênh Chat Mới", Description = "Tạo phòng chat riêng cho nhóm, clan hoặc sự kiện", Type = EventType.ChatChannel, CreatedAt = DateTime.Parse("2025-11-23T07:09:27.7487092") },
+    new Event { EventId = 3, Title = "Sự Kiện Cộng Đồng", Description = "Tổ chức buổi livestream, workshop, AMA...", Type = EventType.CommunityEvent, CreatedAt = DateTime.Parse("2025-11-23T07:10:05.3026004") },
+    new Event { EventId = 4, Title = "Tuyển Thành Viên Clan", Description = "Tìm đồng đội, thành lập team thi đấu", Type = EventType.ClanRecruit, CreatedAt = DateTime.Parse("2025-11-23T07:10:42.5803229") },
+    new Event { EventId = 5, Title = "Thông Báo Lớn", Description = "Gửi thông báo quan trọng đến toàn server", Type = EventType.Announcement, CreatedAt = DateTime.Parse("2025-11-23T07:11:22.2680185") },
+    new Event { EventId = 6, Title = "Đăng Bài Viết", Description = "Viết bài hướng dẫn, chia sẻ chiến lược, câu chuyện cá nhân", Type = EventType.Article, CreatedAt = DateTime.Parse("2025-11-23T07:12:03.836081") }
+);
+            modelBuilder.Entity<ChannelInvite>()
+             .HasOne(ci => ci.User)          // Người được mời
+             .WithMany(u => u.ChannelInvites)
+             .HasForeignKey(ci => ci.UserId)
+             .OnDelete(DeleteBehavior.Restrict); // Không cascade
+
+            modelBuilder.Entity<ChannelInvite>()
+                .HasOne(ci => ci.InvitedBy)     // Người gửi lời mời
+                .WithMany(u => u.SentChannelInvites)
+                .HasForeignKey(ci => ci.InvitedById)
+                .OnDelete(DeleteBehavior.Restrict); // Không cascade
+
+
+            // Map từng bảng con với Event (1-1)
+            modelBuilder.Entity<Tournament>()
+                .HasOne(t => t.Event)
+                .WithOne()
+                .HasForeignKey<Tournament>(t => t.EventRefId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommunityEvent>()
+                .HasOne(c => c.Event)
+                .WithOne()
+                .HasForeignKey<CommunityEvent>(c => c.EventRefId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ClanRecruit>()
+                .HasOne(c => c.Event)
+                .WithOne()
+                .HasForeignKey<ClanRecruit>(c => c.EventRefId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ChatChannel>()
+                .HasOne(c => c.Event)
+                .WithOne()
+                .HasForeignKey<ChatChannel>(c => c.EventRefId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Article>()
+                .HasOne(a => a.Event)
+                .WithOne()
+                .HasForeignKey<Article>(a => a.EventRefId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Announcement>()
+                .HasOne(a => a.Event)
+                .WithOne()
+                .HasForeignKey<Announcement>(a => a.EventRefId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<VoiceSettings>(entity =>
             {
                 entity.HasKey(vs => vs.UserId);
@@ -73,7 +134,7 @@ namespace backend.Models
 
 
             modelBuilder.Entity<VoiceParticipant>()
-    .HasKey(vp => new { vp.UserId, vp.VoiceChannelId });
+            .HasKey(vp => new { vp.UserId, vp.VoiceChannelId });
 
             modelBuilder.Entity<VoiceParticipant>()
                 .HasOne(vp => vp.User)
